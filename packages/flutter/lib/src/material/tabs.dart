@@ -21,8 +21,8 @@ import 'tab_controller.dart';
 import 'tab_indicator.dart';
 import 'theme.dart';
 
-const double _kTabHeight = 46.0;
-const double _kTextAndIconTabHeight = 72.0;
+const double _kTabHeight = 28.0; /// default tab height
+const double _kTextAndIconTabHeight = 56.0; /// default text and icon tab height
 
 /// Defines how the bounds of the selected tab indicator are computed.
 ///
@@ -63,6 +63,8 @@ class Tab extends StatelessWidget {
     this.text,
     this.icon,
     this.child,
+    this.tabHeight = _kTabHeight,
+    this.textAndIconTabHeight = _kTextAndIconTabHeight,
   }) : assert(text != null || child != null || icon != null),
        assert(!(text != null && null != child)), // TODO(goderbauer): https://github.com/dart-lang/sdk/issues/34180
        super(key: key);
@@ -82,6 +84,12 @@ class Tab extends StatelessWidget {
   /// An icon to display as the tab's label.
   final Widget icon;
 
+  /// The tab height.
+  final double tabHeight;
+
+  /// The text and icon tab height.
+  final double textAndIconTabHeight;
+
   Widget _buildLabelText() {
     return child ?? Text(text, softWrap: false, overflow: TextOverflow.fade);
   }
@@ -93,20 +101,20 @@ class Tab extends StatelessWidget {
     double height;
     Widget label;
     if (icon == null) {
-      height = _kTabHeight;
+      height = tabHeight;
       label = _buildLabelText();
     } else if (text == null && child == null) {
-      height = _kTabHeight;
+      height = tabHeight;
       label = icon;
     } else {
-      height = _kTextAndIconTabHeight;
+      height = textAndIconTabHeight;
       label = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Container(
             child: icon,
-            margin: const EdgeInsets.only(bottom: 10.0),
+            //margin: const EdgeInsets.only(bottom: 2.0),
           ),
           _buildLabelText()
         ]
@@ -302,7 +310,7 @@ class _IndicatorPainter extends CustomPainter {
     @required this.tabKeys,
     _IndicatorPainter old,
   }) : assert(controller != null),
-       assert(indicator != null),
+       //assert(indicator != null),
        super(repaint: controller.animation) {
     if (old != null)
       saveTabOffsets(old._currentTabOffsets, old._currentTextDirection);
@@ -374,6 +382,8 @@ class _IndicatorPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     _needsPaint = false;
+    if (indicator == null)
+      return;
     _painter ??= indicator.createBoxPainter(markNeedsPaint);
 
     if (controller.indexIsChanging) {
@@ -550,8 +560,11 @@ class TabBar extends StatefulWidget implements PreferredSizeWidget {
   const TabBar({
     Key key,
     @required this.tabs,
+    this.tabHeight = _kTabHeight,
+    this.textAndIconTabHeight = _kTextAndIconTabHeight,
     this.controller,
     this.isScrollable = false,
+    this.hasIndicator = true,
     this.indicatorColor,
     this.indicatorWeight = 2.0,
     this.indicatorPadding = EdgeInsets.zero,
@@ -567,7 +580,7 @@ class TabBar extends StatefulWidget implements PreferredSizeWidget {
   }) : assert(tabs != null),
        assert(isScrollable != null),
        assert(dragStartBehavior != null),
-       assert(indicator != null || (indicatorWeight != null && indicatorWeight > 0.0)),
+       assert(indicator != null || (indicatorWeight != null && indicatorWeight >= 0.0)),
        assert(indicator != null || (indicatorPadding != null)),
        super(key: key);
 
@@ -575,6 +588,12 @@ class TabBar extends StatefulWidget implements PreferredSizeWidget {
   ///
   /// The length of this list must match the [controller]'s [TabController.length].
   final List<Widget> tabs;
+
+  /// The tab height.
+  final double tabHeight;
+
+  /// The text and icon tab height.
+  final double textAndIconTabHeight;
 
   /// This widget's selection and animation state.
   ///
@@ -630,6 +649,9 @@ class TabBar extends StatefulWidget implements PreferredSizeWidget {
   /// [TabBarIndicatorSize.label] then the tab's bounds are only as wide as
   /// the tab widget itself.
   final Decoration indicator;
+
+  /// Define whether to show indicator
+  final bool hasIndicator;
 
   /// Defines how the selected tab indicator's size is computed.
   ///
@@ -700,10 +722,10 @@ class TabBar extends StatefulWidget implements PreferredSizeWidget {
       if (item is Tab) {
         final Tab tab = item;
         if (tab.text != null && tab.icon != null)
-          return Size.fromHeight(_kTextAndIconTabHeight + indicatorWeight);
+          return Size.fromHeight(textAndIconTabHeight + indicatorWeight);
       }
     }
-    return Size.fromHeight(_kTabHeight + indicatorWeight);
+    return Size.fromHeight(tabHeight + indicatorWeight);
   }
 
   @override
@@ -727,6 +749,8 @@ class _TabBarState extends State<TabBar> {
   }
 
   Decoration get _indicator {
+    if (widget.hasIndicator == false)
+      return null;
     if (widget.indicator != null)
       return widget.indicator;
     final TabBarTheme tabBarTheme = TabBarTheme.of(context);
@@ -940,7 +964,7 @@ class _TabBarState extends State<TabBar> {
     final MaterialLocalizations localizations = MaterialLocalizations.of(context);
     if (_controller.length == 0) {
       return Container(
-        height: _kTabHeight + widget.indicatorWeight,
+        height: widget.tabHeight + widget.indicatorWeight,
       );
     }
 
